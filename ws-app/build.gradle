@@ -1,0 +1,34 @@
+plugins {
+    id 'war'
+}
+
+repositories {
+    jcenter()
+}
+
+configurations {
+    jettyRunner
+}
+
+dependencies {
+    providedCompile group: 'org.eclipse.jetty.websocket', name: 'websocket-server', version: '9.4.8.v20171121'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    runtime group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
+    annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
+
+    jettyRunner group: 'org.eclipse.jetty', name: 'jetty-runner', version: '9.4.8.v20171121'
+    testCompile group: 'org.eclipse.jetty', name: 'jetty-runner', version: '9.4.8.v20171121'
+}
+
+task runJetty(type: JavaExec, group: 'application', dependsOn: war) {
+    main = 'org.eclipse.jetty.runner.Runner'
+    classpath = configurations.jettyRunner.asFileTree
+    args(war.outputs.files.singleFile)
+}
+
+task showProp {
+    doLast {
+        tasks.runJetty.classpath.asPath.split(':').each { println it }
+    }
+}

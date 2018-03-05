@@ -1,0 +1,3 @@
+rootProject.name = 'jetty-websocket-app'
+include "client"
+include "ws-app"
