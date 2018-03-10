@@ -18,6 +18,8 @@ dependencies {
 
     compile group: 'io.projectreactor', name: 'reactor-core', version: '3.1.5.RELEASE'
 
+    compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.9.4'
+
     compileOnly group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
     annotationProcessor group: 'org.projectlombok', name: 'lombok', version: '1.16.20'
 

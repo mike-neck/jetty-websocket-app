@@ -21,48 +21,80 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketClose;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketConnect;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
+import org.reactivestreams.Subscriber;
+import reactor.core.publisher.Mono;
 
 import java.net.InetSocketAddress;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 @WebSocket
 @Slf4j
-public class WebSocketConnection {
+public class WebSocketConnection implements NotificationCenter {
+
+    private final ConnectionManager manager;
 
     private Session session;
-    InetSocketAddress remoteAddress;
+    private InetSocketAddress remoteAddress;
 
-    private final Delivery delivery;
+    private final Subscriber<Message> subscriber;
 
-    public WebSocketConnection(final Delivery delivery) {
-        this.delivery = delivery;
+    WebSocketConnection(final Subscriber<Message> subscriber, final ConnectionManager manager) {
+        this.subscriber = subscriber;
+        this.manager = manager;
     }
 
-    Future<Void> send(final String message) {
-        return session.getRemote().sendStringByFuture(message);
+    @Override
+    public void send(final String message) {
+        Mono.justOrEmpty(session)
+                .filter(Session::isOpen)
+                .map(Session::getRemote)
+                .map(remote -> remote.sendStringByFuture(message))
+                .map(WebSocketConnection::toCompletableFuture)
+                .flatMap(Mono::fromFuture)
+                .subscribe();
+    }
+
+    @Override
+    public boolean canSendTo(final InetSocketAddress address) {
+        return !remoteAddress.equals(address) && isConnectionLive();
+    }
+
+    private static <T> CompletableFuture<T> toCompletableFuture(final Future<? extends T> future) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
     @OnWebSocketConnect
     public void onConnect(final Session session) {
         this.remoteAddress = session.getRemoteAddress();
         this.session = session;
-        log.info("incoming request from: {}", remoteAddress);
-        Handler.connect(this);
+        log.info("new connection: {}", this.remoteAddress);
+        subscriber.onNext(new SystemMessage(String.format("user enter: %s", remoteAddress)));
     }
 
     @OnWebSocketClose
     public void onClose(final Session session, final int closeCode, final String closeReason) {
         log.info("closing session. close code: {}, reason: {}", closeCode, closeReason);
-        Handler.close(this);
+        subscriber.onNext(new SystemMessage(String.format("user leaving: %s", remoteAddress)));
+        manager.leave(remoteAddress);
     }
 
     @OnWebSocketMessage
     public void onMessage(final String message) {
         log.info("coming message: {}, from remote address: {}", message, remoteAddress);
-        Handler.send(this, message);
+        subscriber.onNext(new UserMessage(remoteAddress, message));
     }
 
-    public void close() {
-        session.close();
+    public boolean isConnectionLive() {
+        return Optional.ofNullable(session).filter(Session::isOpen).isPresent();
     }
 }

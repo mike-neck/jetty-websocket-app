@@ -19,12 +19,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
-import reactor.core.publisher.EmitterProcessor;
+
+import java.net.InetSocketAddress;
 
 @Slf4j
 public class Creator implements WebSocketCreator {
 
     private static final Creator instance = new Creator();
+
+    private final ConnectionManager manager = new ConnectionManager();
 
     static Creator getInstance() {
         return instance;
@@ -34,8 +37,8 @@ public class Creator implements WebSocketCreator {
 
     @Override
     public Object createWebSocket(final ServletUpgradeRequest req, final ServletUpgradeResponse resp) {
-        
-        final Delivery delivery = new Delivery(EmitterProcessor.create());
-        return new WebSocketConnection(delivery);
+        final InetSocketAddress remoteSocketAddress = req.getRemoteSocketAddress();
+        log.info("new connection: {}", remoteSocketAddress);
+        return manager.newConnection(remoteSocketAddress);
     }
 }

@@ -35,7 +35,6 @@ public class WebSocketAppServlet extends WebSocketServlet {
     public void configure(final WebSocketServletFactory factory) {
         log.info("configuring instance: {}", this);
         log.info("configure application");
-        factory.register(WebSocketConnection.class);
         factory.setCreator(Creator.getInstance());
     }
 
