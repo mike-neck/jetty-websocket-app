@@ -38,8 +38,9 @@ public class Handler {
         return Flux.create(emitter -> {
             connections.put(connection, emitter);
             emitter.onDispose(() -> {
+                broadCast("bye");
                 connections.remove(connection);
-                publishers.remove(connection);
+                connection.close();
             });
         });
     }

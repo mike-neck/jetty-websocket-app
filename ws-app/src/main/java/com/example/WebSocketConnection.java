@@ -32,6 +32,12 @@ public class WebSocketConnection {
     private Session session;
     InetSocketAddress remoteAddress;
 
+    private final Delivery delivery;
+
+    public WebSocketConnection(final Delivery delivery) {
+        this.delivery = delivery;
+    }
+
     Future<Void> send(final String message) {
         return session.getRemote().sendStringByFuture(message);
     }
@@ -54,5 +60,9 @@ public class WebSocketConnection {
     public void onMessage(final String message) {
         log.info("coming message: {}, from remote address: {}", message, remoteAddress);
         Handler.send(this, message);
+    }
+
+    public void close() {
+        session.close();
     }
 }

@@ -19,14 +19,28 @@ import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jetty.websocket.servlet.*;
 
 import javax.servlet.annotation.WebServlet;
+import java.time.LocalDateTime;
 
 @WebServlet(urlPatterns = "ws")
 @Slf4j
 public class WebSocketAppServlet extends WebSocketServlet {
 
+    private final LocalDateTime instantiated;
+
+    public WebSocketAppServlet() {
+        instantiated = LocalDateTime.now();
+    }
+
     @Override
     public void configure(final WebSocketServletFactory factory) {
+        log.info("configuring instance: {}", this);
         log.info("configure application");
         factory.register(WebSocketConnection.class);
+        factory.setCreator(Creator.getInstance());
+    }
+
+    @Override
+    public String toString() {
+        return "WebSocketAppServlet[" + instantiated.toString() + "]";
     }
 }
